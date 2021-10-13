@@ -35,7 +35,13 @@ python main.py
 Run image classifier
 
 ```bash
-python imgage_classifier.py --image <image_name.extension> --model resnet
+python image_classifier.py --image <image_name.extension> --model resnet
+```
+
+Deactivate virtual enviroment
+
+```bash
+deactivate
 ```
 
 ## Frontend
