@@ -1,25 +1,61 @@
 # Wizualizacje Wielkich Zbiorów Danych - projekt
 
-Foobar is a Python library for dealing with word pluralization.
-
 ## Backend
 
-### Installation
-
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install foobar.
+Enter backend directory
 
 ```bash
-pip install foobar
+cd backend
+```
+
+Create python virtual enviroment
+
+```bash
+python -m venv .venv
+```
+
+Activate virtual enviroment
+
+```bash
+.venv\Scripts\activate.bat
+```
+
+Install required packages
+
+```bash
+pip install -r requirements.txt
+```
+
+Run flask server
+
+```bash
+python main.py
+```
+
+Run image classifier
+
+```bash
+python imgage_classifier.py --image <image_name.extension> --model resnet
 ```
 
 ## Frontend
 
-### Installation
-
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install foobar.
+Enter frontend directory
 
 ```bash
-pip install foobar
+cd frontend
+```
+
+Install required node modules
+
+```bash
+npm install
+```
+
+Run application
+
+```bash
+npm start
 ```
 
 ## License
