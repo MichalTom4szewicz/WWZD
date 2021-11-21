@@ -36,3 +36,14 @@
     transform: rotate(360deg);
   }
 }
+
+#left {
+  display: inline-block;
+  width: 70%;
+}
+
+#right {
+  display: inline-block;
+  width: 30%;
+  background-color: #b4bcca;
+}

@@ -52,6 +52,10 @@ Enter frontend directory
 cd frontend
 ```
 
+```bash
+cd wwzd-app
+```
+
 Install required node modules
 
 ```bash

@@ -1,0 +1,21 @@
+#dropzone {
+  color: white;
+  background: #5a606d;
+  font-size: 20px;
+
+  width: 80%;
+  height: 100%;
+  border-radius: 33px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#dropzone:focus {
+  outline: none;
+}
+
+#text {
+  /* margin: 20px; */
+}
