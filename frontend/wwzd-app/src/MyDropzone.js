@@ -11,7 +11,11 @@ const MyDropzone = ({setter}) => {
       reader.onabort = () => console.log('file reading was aborted')
       reader.onerror = () => console.log('file reading has failed')
       reader.onload = () => {
+        // const binaryStr = reader.result
+        // console.log(binaryStr)
+        // setter(binaryStr)
       }
+      // reader.readAsArrayBuffer(file)
       console.log(file.path);
       console.log(file)
 

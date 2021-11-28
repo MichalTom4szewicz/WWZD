@@ -4,6 +4,7 @@ import { RandomChart } from "./RandomChart";
 import {useState} from 'react'
 
 import MyDropzone from './MyDropzone'
+import MyUploader from './MyUploader'
 
 import fileService from './services/file'
 
@@ -16,6 +17,7 @@ export const App = () => {
 
     fileService
     .uploadFile({"hello": image})
+    // .uploadFile(image)
     .then(r => {
       console.log(r)
     })
@@ -31,10 +33,9 @@ export const App = () => {
       </div>
 
       <div id="right">
-        <MyDropzone setter={setImage} />
-        <button onClick={handleClick}>
-          Send
-        </button>
+      <MyUploader />
+        {/* <MyDropzone setter={setImage} /> */}
+        {/* <button onClick={handleClick}>Send</button> */}
       </div>
     </div>
   );
