@@ -107,23 +107,27 @@ def handle_file():
         n = []
         for pair3 in p_comp:
             x, y, z = pair3
-            if(x < 0):
-                x = math.log10(abs(int(x)))
-                x *= -1
-            else:
-                x = math.log10(abs(int(x)))
+            # if(x < 0):
+            #     x = math.log10(abs(int(x)))
+            #     x *= -1
+            # else:
+            #     x = math.log10(abs(int(x)))
 
-            if(y < 0):
-                y = math.log10(abs(int(y)))
-                y *= -1
-            else:
-                y = math.log10(abs(int(y)))
+            # if(y < 0):
+            #     y = math.log10(abs(int(y)))
+            #     y *= -1
+            # else:
+            #     y = math.log10(abs(int(y)))
 
-            if(z < 0):
-                z = math.log10(abs(int(z)))
-                z *= -1
-            else:
-                z = math.log10(abs(int(z)))
+            # if(z < 0):
+            #     z = math.log10(abs(int(z)))
+            #     z *= -1
+            # else:
+            #     z = math.log10(abs(int(z)))
+
+            x /= 2000
+            y /= 2000
+            z /= 2000
 
             pair = x, y, z
             n.append(pair)
