@@ -2,6 +2,10 @@ import json
 from logging import debug
 
 from sklearn.decomposition import PCA
+from tensorflow.keras.applications import ResNet50, imagenet_utils
+from tensorflow.keras.preprocessing.image import img_to_array, load_img
+from sklearn.preprocessing import Normalizer
+from keras.models import Model
 from werkzeug.utils import secure_filename
 from flask import request
 from flask import Flask
@@ -90,62 +94,70 @@ def handle_file():
 
     if val > numba-1:
 
-        ims = []
-        for i in range(numba):
-            image = Image.open(f"img{i}.{ext}")
-            image_data = asarray(image)
-            image_data = to_gray(image_data)
-            ims.append(image_data)
+        model = ResNet50(weights="imagenet")
+        global_avg_pool = Model(model.inputs, model.get_layer(index=175).output)
+        inputShape = (224, 224)
 
-        imgs = np.array(ims)
-        print(imgs.shape)
+        feats = []
+        for i in range(val):
+            image = load_img(f"img{i}.{ext}", target_size=inputShape)
+            image = img_to_array(image)
+            image = np.expand_dims(image, axis=0)
+            image = imagenet_utils.preprocess_input(image)
+            features = global_avg_pool.predict(image)
+            feats.append(features)
 
-        pca = PCA(3)
-        p_comp = pca.fit_transform(imgs)
-        print(p_comp.shape, p_comp)
+        feats = np.reshape(feats, (val, 2048))
 
-        n = []
-        for pair3 in p_comp:
-            x, y, z = pair3
-            if(x < 0):
-                x = math.log10(abs(int(x)))
-                x *= -1
-            else:
-                x = math.log10(abs(int(x)))
+        pca = PCA(n_components=3, whiten=True)
+        pca_feats = pca.fit_transform(feats)
+        print(pca_feats)
 
-            if(y < 0):
-                y = math.log10(abs(int(y)))
-                y *= -1
-            else:
-                y = math.log10(abs(int(y)))
+        norm_feats = Normalizer(norm='l2').fit_transform(pca_feats)
+        print(norm_feats)
 
-            if(z < 0):
-                z = math.log10(abs(int(z)))
-                z *= -1
-            else:
-                z = math.log10(abs(int(z)))
+        # n = []
+        # for pair3 in norm_feats:
+        #     x, y, z = pair3
+        #     if(x < 0):
+        #         x = math.log10(abs(int(x)))
+        #         x *= -1
+        #     else:
+        #         x = math.log10(abs(int(x)))
 
-            pair = x, y, z
-            n.append(pair)
+        #     if(y < 0):
+        #         y = math.log10(abs(int(y)))
+        #         y *= -1
+        #     else:
+        #         y = math.log10(abs(int(y)))
 
-        print(n)
+        #     if(z < 0):
+        #         z = math.log10(abs(int(z)))
+        #         z *= -1
+        #     else:
+        #         z = math.log10(abs(int(z)))
 
-        obs = []
-        for i in range(numba):
-            x, y, z = n[i]
-            tmp = {
-                "x": x,
-                "y": y,
-                "z": z
-            }
-            obs.append(tmp)
+        #     pair = x, y, z
+        #     n.append(pair)
 
-        value = {
-            "status": "ready",
-            "data": obs
-        }
+        # print(n)
 
-        return json.dumps(value)
+        # obs = []
+        # for i in range(val):
+        #     x, y, z = n[i]
+        #     tmp = {
+        #         "x": x,
+        #         "y": y,
+        #         "z": z
+        #     }
+        #     obs.append(tmp)
+
+        # value = {
+        #     "status": "ready",
+        #     "data": obs
+        # }
+
+        # return json.dumps(value)
 
     # image = Image.open(f"img.{ext}")
 
