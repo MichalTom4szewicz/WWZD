@@ -55,11 +55,14 @@ for filename in os.listdir(directory):
 
     #image = cv2.resize(img,(224,224))
     image = image.reshape(1,224,224,3)
+    
     # classify the image
     preds = model.predict(image)
     P = imagenet_utils.decode_predictions(preds)
+
     # write as list
     f.write(str(P[0]) + '\n')
+
     # write in easy to read form
     #f.write(filename + ': ')
     #for (i, (imagenetID, label, prob)) in enumerate(P[0]):
