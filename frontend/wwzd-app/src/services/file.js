@@ -1,12 +1,11 @@
-import axios from 'axios'
+import axios from "axios";
 
-const serverUrl = 'http://127.0.0.1:5000'
+const serverUrl = "http://127.0.0.1:5000";
 
-const FormData = require('form-data');
+const FormData = require("form-data");
 
 const uploadFile = (file) => {
-
-  const request = axios.post(`${serverUrl}/file`, file)
+  const request = axios.post(`${serverUrl}/file`, file);
   // const form = new FormData();
   // form.append('file', {'object': file}, 'stickers.jpg');
 
@@ -26,9 +25,9 @@ const uploadFile = (file) => {
   //     'Content-Type': 'multipart/form-data'
   //   }
   // })
-  return request.then(response => response.data)
-}
+  return request.then((response) => response.data);
+};
 
 export default {
   uploadFile,
-}
+};

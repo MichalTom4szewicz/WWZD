@@ -15,15 +15,18 @@ export const RandomChart = () => {
     return arr;
   };
 
+  console.log(randArr(4, 10));
+
   return (
     <Plot
       data={[
         {
-          x: randArr(20, 3),
-          y: randArr(20, 3),
-          z: randArr(20, 3),
+          x: randArr(4, 30),
+          y: randArr(4, 30),
+          z: randArr(4, 30),
           mode: "markers",
           type: "scatter3d",
+          marker: { color: "red" },
         },
       ]}
       layout={{
