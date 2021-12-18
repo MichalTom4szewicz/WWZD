@@ -1,7 +1,7 @@
 import "./styles/App.css";
 // import { useState } from "react";
+import MyUploader from "./components/MyUploader.js";
 import { RandomChart } from "./components/RandomChart";
-import MyUploader from "./components/MyUploader";
 // import fileService from "./services/file";
 
 export const App = () => {

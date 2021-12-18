@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import "../styles/MyDropzone.css";
 
-const MyDropzone = ({ setter }) => {
+export const MyDropzone = ({ setter }) => {
   const onDrop = useCallback((acceptedFiles) => {
     acceptedFiles.forEach((file) => {
       const reader = new FileReader();
@@ -31,5 +31,3 @@ const MyDropzone = ({ setter }) => {
     </div>
   );
 };
-
-export default MyDropzone;
