@@ -103,23 +103,24 @@ def get_coordinates():
     input_shape = (224, 224)
 
     feats = []
-    val = 0
+    filenames = []
 
     for filename in glob.glob('imgs/*.jpg'):
         feats.append(get_feats(global_avg_pool, input_shape, filename))
-        val += 1
+        filenames.append(filename.split(sep="\\")[1])
 
-    if (val > 3):
-        feats = np.reshape(feats, (val, 2048))        
+    if (len(filenames) > 3):
+        feats = np.reshape(feats, (len(filenames), 2048))        
         norm_feats = get_pca_norm(feats)
 
         obs = []
-        for i in range(val):
+        for i in range(len(filenames)):
             x, y, z = norm_feats[i]
             tmp = {
                 "x": np.float64(x),
                 "y": np.float64(y),
-                "z": np.float64(z)
+                "z": np.float64(z), 
+                "filename": filenames[i]
             }
             obs.append(tmp)
 
