@@ -1,6 +1,6 @@
 import json
 from logging import debug
-
+import random
 from sklearn.decomposition import PCA
 from tensorflow.keras.applications import ResNet50, imagenet_utils
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
@@ -74,6 +74,28 @@ def file_coordinates():
 @app.route("/")
 def hello_world():
     return geeks()
+
+@app.route("/testInit")
+def init_chart():
+    classes = [
+      "car",
+      "bus",
+      "jeep",
+      "truck",
+      "minibus",
+      "plane",
+      "sportscar",
+      "pickup",
+      "minivan",
+      "limousine",
+      "train",
+    ]
+    randomCords = []
+    for c in classes:
+        randomCords.append([random.randint(0, 20), random.randint(0, 20), random.randint(0, 20), c])
+        randomCords.append([random.randint(0, 20), random.randint(0, 20), random.randint(0, 20), c])
+
+    return json.dumps(randomCords)
 
 
 def get_feats(model, input_shape, filename):
