@@ -14,6 +14,8 @@ from PIL import Image
 from numpy import asarray
 import numpy as np
 import math
+import glob
+import os, os.path
 from multiprocessing import Value
 
 counter = Value('i', 0)
@@ -74,108 +76,74 @@ def hello_world():
     return geeks()
 
 
+def get_feats(model, input_shape, filename):
+    image = load_img(filename, target_size=input_shape)
+    image = img_to_array(image)
+    image = np.expand_dims(image, axis=0)
+    image = imagenet_utils.preprocess_input(image)
+    return model.predict(image)    
+
+
+def get_pca_norm(feats):
+    pca = PCA(n_components=3, whiten=True)
+    pca_feats = pca.fit_transform(feats)
+    print(pca_feats)
+
+    norm_feats = Normalizer(norm='l2').fit_transform(pca_feats)
+    print(norm_feats)
+
+    return norm_feats
+
+
+@app.route('/imgs', methods=['GET'])
+def get_coordinates():
+
+    model = ResNet50(weights="imagenet")
+    global_avg_pool = Model(model.inputs, model.get_layer(index=175).output)
+    input_shape = (224, 224)
+
+    feats = []
+    val = 0
+
+    for filename in glob.glob('imgs/*.jpg'):
+        feats.append(get_feats(global_avg_pool, input_shape, filename))
+        val += 1
+
+    if (val > 3):
+        feats = np.reshape(feats, (val, 2048))        
+        norm_feats = get_pca_norm(feats)
+
+        obs = []
+        for i in range(val):
+            x, y, z = norm_feats[i]
+            tmp = {
+                "x": np.float64(x),
+                "y": np.float64(y),
+                "z": np.float64(z)
+            }
+            obs.append(tmp)
+
+        value = {
+            "status": "ready",
+            "data": obs
+        }
+
+        return json.dumps(value)
+
+    return json.dumps({"status": "not-ready"})
+
+
 @app.route('/file', methods=['POST'])
 def handle_file():
-
-    numba = 4
-    # data = request.get_json()
-
     print(request.files)
     f = request.files['file']
+    path = 'imgs/'
 
-    # f.save(secure_filename(f.filename))
     ext = f.filename.split(".")[1]
     with counter.get_lock():
-        # counter.value += 1
+        f.save(os.path.join(path, secure_filename(f"img{counter.value}.{ext}")))
 
-        f.save(secure_filename(f"img{counter.value}.{ext}"))
-        counter.value += 1
-        val = counter.value
-
-    if val > numba-1:
-
-        model = ResNet50(weights="imagenet")
-        global_avg_pool = Model(model.inputs, model.get_layer(index=175).output)
-        inputShape = (224, 224)
-
-        feats = []
-        for i in range(val):
-            image = load_img(f"img{i}.{ext}", target_size=inputShape)
-            image = img_to_array(image)
-            image = np.expand_dims(image, axis=0)
-            image = imagenet_utils.preprocess_input(image)
-            features = global_avg_pool.predict(image)
-            feats.append(features)
-
-        feats = np.reshape(feats, (val, 2048))
-
-        pca = PCA(n_components=3, whiten=True)
-        pca_feats = pca.fit_transform(feats)
-        print(pca_feats)
-
-        norm_feats = Normalizer(norm='l2').fit_transform(pca_feats)
-        print(norm_feats)
-
-        # n = []
-        # for pair3 in norm_feats:
-        #     x, y, z = pair3
-        #     if(x < 0):
-        #         x = math.log10(abs(int(x)))
-        #         x *= -1
-        #     else:
-        #         x = math.log10(abs(int(x)))
-
-        #     if(y < 0):
-        #         y = math.log10(abs(int(y)))
-        #         y *= -1
-        #     else:
-        #         y = math.log10(abs(int(y)))
-
-        #     if(z < 0):
-        #         z = math.log10(abs(int(z)))
-        #         z *= -1
-        #     else:
-        #         z = math.log10(abs(int(z)))
-
-        #     pair = x, y, z
-        #     n.append(pair)
-
-        # print(n)
-
-        # obs = []
-        # for i in range(val):
-        #     x, y, z = n[i]
-        #     tmp = {
-        #         "x": x,
-        #         "y": y,
-        #         "z": z
-        #     }
-        #     obs.append(tmp)
-
-        # value = {
-        #     "status": "ready",
-        #     "data": obs
-        # }
-
-        # return json.dumps(value)
-
-    # image = Image.open(f"img.{ext}")
-
-    # image_data = asarray(image)
-
-    # gray = to_gray(image_data)
-    # gray = np.array([gray])
-
-    # print(gray.shape)
-
-    # pca = PCA(0.8)
-    # # gray = gray.reshape(1, -1)
-    # p_comp = pca.fit_transform(gray)
-
-    # print(p_comp.shape)
-
-    # return file_coordinates()
-    return json.dumps({"status": "not-ready"})
+    return get_coordinates()
 
 
 if __name__ == '__main__':
