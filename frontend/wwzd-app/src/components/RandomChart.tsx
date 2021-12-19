@@ -18,11 +18,9 @@ export const RandomChart = () => {
       "limousine",
       "train",
     ];
-
     const randomCords: Cord[] = [];
     for (let i = 0; i < 30; i++) {
       const randClass = Math.floor(Math.random() * 11);
-
       randomCords.push([
         Math.random() * 40,
         Math.random() * 40,
@@ -30,7 +28,6 @@ export const RandomChart = () => {
         classes[randClass],
       ]);
     }
-
     return randomCords;
   };
 
