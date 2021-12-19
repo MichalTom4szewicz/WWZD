@@ -1,7 +1,7 @@
 import "./styles/App.css";
 // import { useState } from "react";
 import MyUploader from "./components/MyUploader.js";
-import { RandomChart } from "./components/RandomChart";
+import { MainChart } from "./components/MainChart";
 // import fileService from "./services/file";
 
 export const App = () => {
@@ -22,7 +22,7 @@ export const App = () => {
     <div className="App">
       <div id="left">
         <header className="App-header">
-          <RandomChart />
+          <MainChart />
         </header>
       </div>
 
