@@ -11,11 +11,16 @@ export type Cord = {
   className?: string;
 };
 
-export const MainChart = () => {
-  const [xArray, setXArray] = useState<number[]>([]);
-  const [yArray, setYArray] = useState<number[]>([]);
-  const [zArray, setZArray] = useState<number[]>([]);
-  const [namesArray, setNamesArray] = useState<string[]>([]);
+export const MainChart = ({
+  xArray,
+  setXArray,
+  yArray,
+  setYArray,
+  zArray,
+  setZArray,
+  namesArray,
+  setNamesArray,
+}) => {
   const [colors, setColors] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   // const [classesArray, setClassesArray] = useState<string[]>([]);
@@ -64,7 +69,6 @@ export const MainChart = () => {
               type: "scatter3d",
               marker: {
                 color: colors,
-                // color: ["red", "blue"],
                 size: 5,
                 // symbol: ["diamond-open"],
               },
@@ -81,8 +85,7 @@ export const MainChart = () => {
             width: 800,
             title: "Wizualizacja wielkich zbiorów danych",
           }}
-          // onHover={() => console.log("zz")}
-          onRelayout={(figure) => console.log(figure)}
+          // onRelayout={(figure) => console.log(figure)}
         />
       )}
     </>
