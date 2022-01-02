@@ -17,8 +17,16 @@ import math
 import glob
 import os, os.path
 from multiprocessing import Value
+import time
+
+from umap import UMAP
 
 counter = Value('i', 0)
+
+method = "pca"
+model = ResNet50(weights="imagenet")
+global_avg_pool = Model(model.inputs, model.get_layer(index=175).output)
+input_shape = (224, 224)
 
 app = Flask(__name__)
 CORS(app)
@@ -103,7 +111,7 @@ def get_feats(model, input_shape, filename):
     image = img_to_array(image)
     image = np.expand_dims(image, axis=0)
     image = imagenet_utils.preprocess_input(image)
-    return model.predict(image)    
+    return model.predict(image)
 
 
 def get_pca_norm(feats):
@@ -120,19 +128,16 @@ def get_pca_norm(feats):
 @app.route('/imgs', methods=['GET'])
 def get_coordinates():
 
-    model = ResNet50(weights="imagenet")
-    global_avg_pool = Model(model.inputs, model.get_layer(index=175).output)
-    input_shape = (224, 224)
-
     feats = []
     filenames = []
 
-    for filename in glob.glob('imgs/*.jpg'):
+    for filename in glob.glob('imgs/*.*'):
         feats.append(get_feats(global_avg_pool, input_shape, filename))
         filenames.append(filename.split(sep="\\")[1])
+    print("___________________PCA___________________")
 
     if (len(filenames) > 3):
-        feats = np.reshape(feats, (len(filenames), 2048))        
+        feats = np.reshape(feats, (len(filenames), 2048))
         norm_feats = get_pca_norm(feats)
 
         obs = []
@@ -141,7 +146,7 @@ def get_coordinates():
             tmp = {
                 "x": np.float64(x),
                 "y": np.float64(y),
-                "z": np.float64(z), 
+                "z": np.float64(z),
                 "filename": filenames[i]
             }
             obs.append(tmp)
@@ -163,10 +168,80 @@ def handle_file():
     path = 'imgs/'
 
     ext = f.filename.split(".")[1]
+    name_count = len(os.listdir(path)) + 1
     with counter.get_lock():
-        f.save(os.path.join(path, secure_filename(f"img{counter.value}.{ext}")))
+        f.save(os.path.join(path, secure_filename(f"img{name_count}.{ext}")))
 
-    return get_coordinates()
+    return get_coordinates() if method == 'pca' else get_umap_cords()
+
+
+@app.route('/check', methods=['GET'])
+def handle_check():
+    global method
+    return json.dumps({
+        "method": method
+    })
+
+
+@app.route('/method', methods=['POST'])
+def handle_method():
+
+    data = request.data.decode("utf-8")
+    data = json.loads(data)
+
+    global method
+    method = data['method']
+
+    time.sleep(1)
+    # return json.dumps({
+    #     "method": method
+    # })
+    return get_coordinates() if method == 'pca' else get_umap_cords()
+
+
+@app.route('/umap', methods=['GET'])
+def get_umap_cords():
+
+    feats = []
+    filenames = []
+
+    for filename in glob.glob('imgs/*.*'):
+        feats.append(get_feats(global_avg_pool, input_shape, filename))
+        filenames.append(filename.split(sep="\\")[1])
+
+    print("___________________UMAP___________________")
+
+    feats = np.reshape(feats, (len(filenames), 2048))
+
+    umap_3d = UMAP(n_components=3, init='random', random_state=0)
+    proj_3d = umap_3d.fit_transform(feats)
+
+    print(proj_3d)
+
+    obs = []
+    for i in range(len(filenames)):
+        x, y, z = proj_3d[i]
+        tmp = {
+            "x": np.float64(x),
+            "y": np.float64(y),
+            "z": np.float64(z),
+            "filename": filenames[i]
+        }
+        obs.append(tmp)
+
+    value = {
+        "status": "ready",
+        "data": obs
+    }
+
+    return json.dumps(value)
+
+    # return json.dumps({"status": "not-ready"})
+
+    return json.dumps({
+        "method": method
+    })
+
 
 
 if __name__ == '__main__':

@@ -28,6 +28,12 @@ const uploadFile = (file) => {
   return request.then((response) => response.data);
 };
 
+const changeMethod = (method) => {
+  const request = axios.post(`${serverUrl}/method`, method);
+  return request.then((response) => response.data);
+};
+
 export default {
   uploadFile,
+  changeMethod
 };
