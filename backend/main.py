@@ -16,6 +16,7 @@ import numpy as np
 import math
 import glob
 import os, os.path
+import joblib
 from multiprocessing import Value
 import time
 
@@ -24,8 +25,7 @@ from umap import UMAP
 counter = Value('i', 0)
 
 method = "pca"
-model = ResNet50(weights="imagenet")
-global_avg_pool = Model(model.inputs, model.get_layer(index=175).output)
+resnet = ResNet50(include_top=False, weights="imagenet", pooling="avg")
 input_shape = (224, 224)
 
 app = Flask(__name__)
@@ -43,37 +43,6 @@ def geeks():
         "company": company,
         "Itemid": Itemid,
         "price": price
-    }
-
-    return json.dumps(value)
-
-
-def to_gray(img):
-    gray_img = []
-    w, h, d = img.shape
-
-    for row in img:
-        for elem in row:
-            r = 0
-            b = 0
-            g = 0
-            if d == 4:
-                r, g, b, a = elem
-            else:
-                r, g, b = elem
-            gray = (r/255 + g/255 + b/255)/3*255
-            gray_img.append(math.floor(gray))
-
-    # gray_img
-    np_gray = np.array(gray_img)
-    return np_gray  # .reshape((w, h))
-
-
-def file_coordinates():
-    value = {
-        "x": 10,
-        "y": 31,
-        "z": 1,
     }
 
     return json.dumps(value)
@@ -105,6 +74,37 @@ def init_chart():
 
     return json.dumps(randomCords)
 
+    # ???
+def get_umap_norm(feats):
+    normalizer_first = Normalizer(norm='l2')
+    normalizer_first.fit(feats)
+    norm_feats = normalizer_first.transform(feats)
+    joblib.dump(normalizer_first, 'models/normalizer_first_umap.joblib')
+
+    umap = UMAP(n_components=3, init='random', random_state=0)
+    umap.fit(norm_feats)
+    umap_feats = umap.transform(norm_feats)
+    joblib.dump(umap, 'models/umap.joblib')
+
+    normalizer_second = Normalizer(norm='l2')
+    normalizer_second.fit(umap_feats)
+    norm_feats = normalizer_second.transform(umap_feats)
+    joblib.dump(normalizer_second, 'models/normalizer_second_umap.joblib')
+
+    return norm_feats
+
+    # ???
+def transform_feats_umap(feats):
+    normalizer_first = joblib.load('models/normalizer_first_umap.joblib')
+    norm_feats = normalizer_first.transform(feats)
+
+    umap = joblib.load('models/umap.joblib')
+    umap_feats = umap.transform(norm_feats)
+
+    normalizer_second = joblib.load('models/normalizer_second_umap.joblib')
+    norm_feats = normalizer_second.transform(umap_feats)
+
+    return norm_feats
 
 def get_feats(model, input_shape, filename):
     image = load_img(filename, target_size=input_shape)
@@ -115,50 +115,134 @@ def get_feats(model, input_shape, filename):
 
 
 def get_pca_norm(feats):
-    pca = PCA(n_components=3, whiten=True)
-    pca_feats = pca.fit_transform(feats)
-    print(pca_feats)
+    normalizer_first = Normalizer(norm='l2')
+    normalizer_first.fit(feats)
+    norm_feats = normalizer_first.transform(feats)
+    joblib.dump(normalizer_first, 'models/normalizer_first.joblib')
 
-    norm_feats = Normalizer(norm='l2').fit_transform(pca_feats)
-    print(norm_feats)
+    pca = PCA(n_components=3, whiten=True)
+    pca.fit(norm_feats)
+    pca_feats = pca.transform(norm_feats)
+    joblib.dump(pca, 'models/pca.joblib')
+
+    normalizer_second = Normalizer(norm='l2')
+    normalizer_second.fit(pca_feats)
+    norm_feats = normalizer_second.transform(pca_feats)
+    joblib.dump(normalizer_second, 'models/normalizer_second.joblib')
+
+    return norm_feats
+
+
+def transform_feats(feats):
+    normalizer_first = joblib.load('models/normalizer_first.joblib')
+    norm_feats = normalizer_first.transform(feats)
+
+    pca = joblib.load('models/pca.joblib')
+    pca_feats = pca.transform(norm_feats)
+
+    normalizer_second = joblib.load('models/normalizer_second.joblib')
+    norm_feats = normalizer_second.transform(pca_feats)
 
     return norm_feats
 
 
 @app.route('/imgs', methods=['GET'])
 def get_coordinates():
+    value_pca = {}
+    value_umap = {}
+    if (os.path.exists('coords.json')):
+        with open('coords.json') as json_file:
+            coords = json.load(json_file)
+            value_pca = {
+                "status": "ready",
+                "data": coords
+            }
+            # return json.dumps(value)
+    if (os.path.exists('coords_umap.json')):
+        with open('coords_umap.json') as json_file:
+            coords = json.load(json_file)
+            value_umap = {
+                "status": "ready",
+                "data": coords
+            }
+            # return json.dumps(value)
+
+    if method == 'pca' and value_pca:
+        return json.dumps(value_pca)
+    elif method == 'umap' and value_umap:
+        return json.dumps(value_umap)
 
     feats = []
     filenames = []
 
-    for filename in glob.glob('imgs/*.*'):
-        feats.append(get_feats(global_avg_pool, input_shape, filename))
+    for filename in glob.glob('imgs/*'):
+        feats.append(get_feats(resnet, input_shape, filename))
         filenames.append(filename.split(sep="\\")[1])
+
     print("___________________PCA___________________")
 
-    if (len(filenames) > 3):
-        feats = np.reshape(feats, (len(filenames), 2048))
-        norm_feats = get_pca_norm(feats)
+    feats = np.reshape(feats, (len(filenames), 2048))
+    norm_feats = get_pca_norm(feats)
 
-        obs = []
-        for i in range(len(filenames)):
-            x, y, z = norm_feats[i]
-            tmp = {
-                "x": np.float64(x),
-                "y": np.float64(y),
-                "z": np.float64(z),
-                "filename": filenames[i]
-            }
-            obs.append(tmp)
-
-        value = {
-            "status": "ready",
-            "data": obs
+    coords = []
+    for i in range(len(filenames)):
+        x, y, z = norm_feats[i]
+        tmp = {
+            "x": np.float64(x),
+            "y": np.float64(y),
+            "z": np.float64(z),
+            "filename": filenames[i]
         }
+        coords.append(tmp)
 
-        return json.dumps(value)
+    with open('coords.json', 'w') as json_file:
+        json.dump(coords, json_file)
 
-    return json.dumps({"status": "not-ready"})
+    value_pca = {
+        "status": "ready",
+        "data": coords
+    }
+    #########################
+
+    feats = []
+    filenames = []
+
+    for filename in glob.glob('imgs/*'):
+        feats.append(get_feats(resnet, input_shape, filename))
+        filenames.append(filename.split(sep="\\")[1])
+
+    print("___________________UMAP___________________")
+
+    feats = np.reshape(feats, (len(filenames), 2048))
+    norm_feats = get_umap_norm(feats)
+    # umap_3d = UMAP(n_components=3, init='random', random_state=0)
+    # proj_3d = umap_3d.fit_transform(feats)
+    # print(proj_3d)
+
+    obs = []
+    for i in range(len(filenames)):
+        x, y, z = norm_feats[i]
+        tmp = {
+            "x": np.float64(x),
+            "y": np.float64(y),
+            "z": np.float64(z),
+            "filename": filenames[i]
+        }
+        obs.append(tmp)
+
+    with open('coords_umap.json', 'w') as json_file:
+        json.dump(obs, json_file)
+
+    value_umap = {
+        "status": "ready",
+        "data": obs
+    }
+
+    if method == 'pca':
+        return json.dumps(value_pca)
+    elif method == 'umap':
+        return json.dumps(value_umap)
+
 
 
 @app.route('/file', methods=['POST'])
@@ -166,13 +250,76 @@ def handle_file():
     print(request.files)
     f = request.files['file']
     path = 'imgs/'
-
     ext = f.filename.split(".")[1]
     name_count = len(os.listdir(path)) + 1
-    with counter.get_lock():
-        f.save(os.path.join(path, secure_filename(f"img{name_count}.{ext}")))
+    filename = secure_filename(f"img{name_count}.{ext}")
+    path = os.path.join(path, filename)
+    f.save(path)
 
-    return get_coordinates() if method == 'pca' else get_umap_cords()
+    value_pca = {}
+    value_umap = {}
+    if (os.path.exists('coords.json')):
+        with open('coords.json') as json_file:
+            coords = json.load(json_file)
+
+        # resnet = ResNet50(include_top=False, weights="imagenet", pooling="avg")
+        # input_shape = (224, 224)
+        feats = get_feats(resnet, input_shape, path)
+        norm_feats = transform_feats(feats)
+
+        x, y, z = norm_feats[0]
+        tmp = {
+            "x": np.float64(x),
+            "y": np.float64(y),
+            "z": np.float64(z),
+            "filename": filename
+        }
+        coords.append(tmp)
+
+        with open('coords.json', 'w') as json_file:
+            json.dump(coords, json_file)
+
+        value_pca = {
+            "status": "ready",
+            "data": coords
+        }
+
+        # return json.dumps(value)
+    if (os.path.exists('coords_umap.json')):
+        with open('coords_umap.json') as json_file:
+            coords = json.load(json_file)
+
+        # resnet = ResNet50(include_top=False, weights="imagenet", pooling="avg")
+        # input_shape = (224, 224)
+        feats = get_feats(resnet, input_shape, path)
+        norm_feats = transform_feats_umap(feats)
+
+        x, y, z = norm_feats[0]
+        tmp = {
+            "x": np.float64(x),
+            "y": np.float64(y),
+            "z": np.float64(z),
+            "filename": filename
+        }
+        coords.append(tmp)
+
+        with open('coords_umap.json', 'w') as json_file:
+            json.dump(coords, json_file)
+
+        value_umap = {
+            "status": "ready",
+            "data": coords
+        }
+
+        # return json.dumps(value)
+
+    if not(os.path.exists('coords_umap.json') or os.path.exists('coords.json')):
+        return get_coordinates()
+
+    if method == 'pca':
+        return json.dumps(value_pca)
+    elif method == 'umap':
+        return json.dumps(value_umap)
 
 
 @app.route('/check', methods=['GET'])
@@ -193,55 +340,55 @@ def handle_method():
     method = data['method']
 
     time.sleep(1)
-    # return json.dumps({
-    #     "method": method
-    # })
-    return get_coordinates() if method == 'pca' else get_umap_cords()
+    return get_coordinates()# if method == 'pca' else get_umap_cords()
 
 
-@app.route('/umap', methods=['GET'])
-def get_umap_cords():
+# @app.route('/umap', methods=['GET'])
+# def get_umap_cords():
+#     if (os.path.exists('coords_umap.json')):
+#         with open('coords_umap.json') as json_file:
+#             coords = json.load(json_file)
+#             value = {
+#                 "status": "ready",
+#                 "data": coords
+#             }
+#             return json.dumps(value)
+#     else:
+#         feats = []
+#         filenames = []
 
-    feats = []
-    filenames = []
+#         for filename in glob.glob('imgs/*.*'):
+#             feats.append(get_feats(resnet, input_shape, filename))
+#             filenames.append(filename.split(sep="\\")[1])
 
-    for filename in glob.glob('imgs/*.*'):
-        feats.append(get_feats(global_avg_pool, input_shape, filename))
-        filenames.append(filename.split(sep="\\")[1])
+#         print("___________________UMAP___________________")
 
-    print("___________________UMAP___________________")
+#         feats = np.reshape(feats, (len(filenames), 2048))
+#         norm_feats = get_umap_norm(feats)
+#         # umap_3d = UMAP(n_components=3, init='random', random_state=0)
+#         # proj_3d = umap_3d.fit_transform(feats)
+#         # print(proj_3d)
 
-    feats = np.reshape(feats, (len(filenames), 2048))
+#         obs = []
+#         for i in range(len(filenames)):
+#             x, y, z = norm_feats[i]
+#             tmp = {
+#                 "x": np.float64(x),
+#                 "y": np.float64(y),
+#                 "z": np.float64(z),
+#                 "filename": filenames[i]
+#             }
+#             obs.append(tmp)
 
-    umap_3d = UMAP(n_components=3, init='random', random_state=0)
-    proj_3d = umap_3d.fit_transform(feats)
+#         with open('coords_umap.json', 'w') as json_file:
+#             json.dump(obs, json_file)
 
-    print(proj_3d)
+#         value = {
+#             "status": "ready",
+#             "data": obs
+#         }
 
-    obs = []
-    for i in range(len(filenames)):
-        x, y, z = proj_3d[i]
-        tmp = {
-            "x": np.float64(x),
-            "y": np.float64(y),
-            "z": np.float64(z),
-            "filename": filenames[i]
-        }
-        obs.append(tmp)
-
-    value = {
-        "status": "ready",
-        "data": obs
-    }
-
-    return json.dumps(value)
-
-    # return json.dumps({"status": "not-ready"})
-
-    return json.dumps({
-        "method": method
-    })
-
+#         return json.dumps(value)
 
 
 if __name__ == '__main__':
