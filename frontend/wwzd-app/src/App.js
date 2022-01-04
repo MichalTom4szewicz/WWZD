@@ -4,11 +4,38 @@ import MyUploader from "./components/MyUploader.js";
 import { MainChart } from "./components/MainChart";
 import fileService from "./services/file";
 
+const options = [
+  { value: 'pickup', label: 'pickup' },
+  { value: 'convertible', label: 'convertible' },
+  { value: 'sports_car', label: 'sports_car' },
+  { value: 'minivan', label: 'minivan' },
+  { value: 'beach_wagon', label: 'beach_wagon' },
+  { value: 'limousine', label: 'limousine' },
+  { value: 'racer', label: 'racer' },
+  { value: 'jeep', label: 'jeep' },
+  { value: 'tow_truck', label: 'tow_truck' },
+  { value: 'cab', label: 'cab' },
+  { value: 'minibus', label: 'minibus' },
+  { value: 'passenger_car', label: 'passenger_car' },
+]
+
 const Checkbox = ({ label, value, onChange }) => {
   return (
     <label>
       <input type="checkbox" checked={value} onChange={onChange} />
       {label}
+    </label>
+  );
+};
+
+const Select = ({ label, value, onChange }) => {
+  return (
+    <label>{label}:
+      <select value={value} onChange={onChange}>
+        {options.map((option) => (
+          <option value={option.value}>{option.label}</option>
+        ))}
+      </select>
     </label>
   );
 };
@@ -20,10 +47,11 @@ export const App = () => {
   const [namesArray, setNamesArray] = useState([]);
 
   const [method, setMethod] = useState([1, 0]);
+  const [ifClass, setIfClass] = useState(false);
+  const [axes, setAxes] = useState(["pickup", "convertible", "sports_car"]);
 
   const handleMethod = () => {
-    let me = method;
-    let met = me.map(m => Math.abs(m-1))
+    let met = method.map(m => Math.abs(m-1))
     setMethod(met)
     fileService.changeMethod({"method": met[0] ? "pca" : "umap"}).then((response) => {
       console.log(response)
@@ -35,6 +63,23 @@ export const App = () => {
       setZArray(cords.map((item) => item.z));
       setNamesArray(cords.map((item) => item.filename));
     })
+  }
+
+  const handleAxes = (e, i) => {
+    let ax = [...axes];
+    ax[i] = e.target.value;
+    setAxes(ax);
+    if (ifClass) {
+      fileService.changeAxes({"axes": ax}).then((response) => {
+        console.log(response)
+  
+        const cords = response.data;
+        setXArray(cords.map((item) => item.x));
+        setYArray(cords.map((item) => item.y));
+        setZArray(cords.map((item) => item.z));
+        setNamesArray(cords.map((item) => item.filename));
+      })
+    }
   }
 
   // const [image, setImage] = useState("");
@@ -64,6 +109,7 @@ export const App = () => {
             setZArray={setZArray}
             namesArray={namesArray}
             setNamesArray={setNamesArray}
+            axesNames={ifClass ? axes : undefined}
           />
         </header>
       </div>
@@ -81,6 +127,28 @@ export const App = () => {
           value = {method[1] ? true : false}
           onChange={handleMethod}
         />
+        <Checkbox
+          label="Class"
+          value = {ifClass}
+          onChange={()=>setIfClass(!ifClass)}
+        />
+        <p>
+          <Select
+            label="X"
+            value = {axes[0]}
+            onChange={(e) => handleAxes(e, 0)}
+          />
+          <Select
+            label="Y"
+            value = {axes[1]}
+            onChange={(e) => handleAxes(e, 1)}
+          />
+          <Select
+            label="Z"
+            value = {axes[2]}
+            onChange={(e) => handleAxes(e, 2)}
+          />
+        </p>
 
         <MyUploader
           setXArray={setXArray}

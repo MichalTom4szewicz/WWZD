@@ -23,8 +23,10 @@ import time
 from umap import UMAP
 
 counter = Value('i', 0)
+classes = ['pickup', 'sports_car', 'minivan']
 
 method = "pca"
+model = ResNet50(weights="imagenet")
 resnet = ResNet50(include_top=False, weights="imagenet", pooling="avg")
 input_shape = (224, 224)
 
@@ -73,6 +75,29 @@ def init_chart():
         randomCords.append([random.randint(0, 20), random.randint(0, 20), random.randint(0, 20), c])
 
     return json.dumps(randomCords)
+
+def take_3_most_common_labels(feats):
+    car_types = {}
+    for i in range(len(feats)):
+        for j in range(len(feats[0])):
+            if (feats[i][j][1] in car_types):
+                car_types[feats[i][j][1]] = car_types[feats[i][j][1]] + 1
+            else:
+                car_types[feats[i][j][1]] = 1
+    car_types = dict(sorted(car_types.items(), reverse=True, key=lambda item: item[1]))
+    keys = list(car_types.keys())
+    return keys[:3]
+
+def compare_images(feats, classes):
+    coordinates = [[0 for x in range(len(classes))] for y in range(len(feats))]
+    for item in range(len(feats)):
+        for classIndex in range(len(classes)):
+            for result in range(len(feats[0])):
+                if (classes[classIndex] == feats[item][result][1]):
+                    coordinates[item][classIndex] = feats[item][result][2]
+    norm_coordinates = Normalizer(norm='l2').fit_transform(coordinates)
+    print(norm_coordinates)
+    return(norm_coordinates)
 
     # ???
 def get_umap_norm(feats):
@@ -330,6 +355,16 @@ def handle_check():
     })
 
 
+@app.route('/axes', methods=['POST'])
+def post_axes():
+    data = request.data.decode("utf-8")
+    data = json.loads(data)
+
+    global classes
+    classes = data['axes']
+    return get_class_coordinates()
+
+
 @app.route('/method', methods=['POST'])
 def handle_method():
 
@@ -341,6 +376,39 @@ def handle_method():
 
     time.sleep(1)
     return get_coordinates()# if method == 'pca' else get_umap_cords()
+
+
+@app.route('/class', methods=['GET'])
+def get_class_coordinates():
+
+    feats = []
+    filenames = []
+
+    for filename in glob.glob('imgs/*.*'):
+        feats.append(imagenet_utils.decode_predictions(get_feats(model, input_shape, filename)))
+        filenames.append(filename.split(sep="\\")[1])
+    print("___________________Class___________________")
+
+    feats = np.squeeze(feats)
+    class_coordinates = compare_images(feats, classes)
+
+    obs = []
+    for i in range(len(filenames)):
+        x, y, z = class_coordinates[i]
+        tmp = {
+            "x": np.float64(x),
+            "y": np.float64(y),
+            "z": np.float64(z),
+            "filename": filenames[i]
+        }
+        obs.append(tmp)
+
+    value = {
+        "status": "ready",
+        "data": obs
+    }
+
+    return json.dumps(value)
 
 
 # @app.route('/umap', methods=['GET'])

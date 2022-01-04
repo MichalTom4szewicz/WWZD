@@ -20,6 +20,7 @@ export const MainChart = ({
   setZArray,
   namesArray,
   setNamesArray,
+  axesNames,
 }) => {
   const [colors, setColors] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,9 +78,9 @@ export const MainChart = ({
           ]}
           layout={{
             scene: {
-              xaxis: { title: "oś X" },
-              yaxis: { title: "oś Y" },
-              zaxis: { title: "oś Z" },
+              xaxis: { title: axesNames ? axesNames[0] : "oś X" },
+              yaxis: { title: axesNames ? axesNames[1] : "oś Y" },
+              zaxis: { title: axesNames ? axesNames[2] : "oś Z" },
             },
             height: 800,
             width: 800,

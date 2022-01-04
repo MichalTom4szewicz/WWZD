@@ -33,7 +33,13 @@ const changeMethod = (method) => {
   return request.then((response) => response.data);
 };
 
+const changeAxes = (axes) => {
+  const request = axios.post(`${serverUrl}/axes`, axes);
+  return request.then((response) => response.data);
+};
+
 export default {
   uploadFile,
-  changeMethod
+  changeMethod,
+  changeAxes
 };
