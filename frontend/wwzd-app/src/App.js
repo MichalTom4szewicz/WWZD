@@ -46,14 +46,16 @@ export const App = () => {
   const [zArray, setZArray] = useState([]);
   const [namesArray, setNamesArray] = useState([]);
 
-  const [method, setMethod] = useState([1, 0]);
+  const [method, setMethod] = useState([1, 0, 0]);
   const [ifClass, setIfClass] = useState(false);
   const [axes, setAxes] = useState(["pickup", "convertible", "sports_car"]);
+  const methodsArray = ["pca", "umap", "no_whiten"]
 
-  const handleMethod = () => {
-    let met = method.map(m => Math.abs(m-1))
+  const handleMethod = (index) => {
+    let met = method.map(m => 0)//Math.abs(m-1))
+    met[index] = 1
     setMethod(met)
-    fileService.changeMethod({"method": met[0] ? "pca" : "umap"}).then((response) => {
+    fileService.changeMethod({"method": methodsArray[index]}).then((response) => {
       console.log(response)
       // let response = JSON.parse(xhr.response);
 
@@ -120,12 +122,17 @@ export const App = () => {
         <Checkbox
           label="PCA"
           value = {method[0] ? true : false}
-          onChange={handleMethod}
+          onChange={()=>handleMethod(0)}
         />
         <Checkbox
           label="UMAP"
           value = {method[1] ? true : false}
-          onChange={handleMethod}
+          onChange={()=>handleMethod(1)}
+        />
+        <Checkbox
+          label="PCA (no whitening)"
+          value = {method[2] ? true : false}
+          onChange={()=>handleMethod(2)}
         />
         <Checkbox
           label="Class"

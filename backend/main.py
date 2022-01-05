@@ -170,11 +170,43 @@ def transform_feats(feats):
 
     return norm_feats
 
+def get_pca_no_whiten(feats):
+    normalizer_first = Normalizer(norm='l2')
+    normalizer_first.fit(feats)
+    norm_feats = normalizer_first.transform(feats)
+    joblib.dump(normalizer_first, 'models/normalizer_first_no_whiten.joblib')
+
+    pca = PCA(n_components=3, whiten=False)
+    pca.fit(norm_feats)
+    pca_feats = pca.transform(norm_feats)
+    joblib.dump(pca, 'models/pca_no_whiten.joblib')
+
+    normalizer_second = Normalizer(norm='l2')
+    normalizer_second.fit(pca_feats)
+    norm_feats = normalizer_second.transform(pca_feats)
+    joblib.dump(normalizer_second, 'models/normalizer_second_no_whiten.joblib')
+
+    return norm_feats
+
+
+def transform_feats_no_whiten(feats):
+    normalizer_first = joblib.load('models/normalizer_first_no_whiten.joblib')
+    norm_feats = normalizer_first.transform(feats)
+
+    pca = joblib.load('models/pca_no_whiten.joblib')
+    pca_feats = pca.transform(norm_feats)
+
+    normalizer_second = joblib.load('models/normalizer_second_no_whiten.joblib')
+    norm_feats = normalizer_second.transform(pca_feats)
+
+    return norm_feats
+
 
 @app.route('/imgs', methods=['GET'])
 def get_coordinates():
     value_pca = {}
     value_umap = {}
+    value_no_whiten = {}
     if (os.path.exists('coords.json')):
         with open('coords.json') as json_file:
             coords = json.load(json_file)
@@ -191,11 +223,20 @@ def get_coordinates():
                 "data": coords
             }
             # return json.dumps(value)
+    if (os.path.exists('coords_no_whiten.json')):
+        with open('coords_no_whiten.json') as json_file:
+            coords = json.load(json_file)
+            value_no_whiten = {
+                "status": "ready",
+                "data": coords
+            }
 
     if method == 'pca' and value_pca:
         return json.dumps(value_pca)
     elif method == 'umap' and value_umap:
         return json.dumps(value_umap)
+    elif method == 'no_whiten' and value_no_whiten:
+        return json.dumps(value_no_whiten)
 
     feats = []
     filenames = []
@@ -224,6 +265,38 @@ def get_coordinates():
         json.dump(coords, json_file)
 
     value_pca = {
+        "status": "ready",
+        "data": coords
+    }
+    #########################
+
+    feats = []
+    filenames = []
+
+    for filename in glob.glob('imgs/*'):
+        feats.append(get_feats(resnet, input_shape, filename))
+        filenames.append(filename.split(sep="\\")[1])
+
+    print("___________________PCA_NO_WHITEN___________________")
+
+    feats = np.reshape(feats, (len(filenames), 2048))
+    norm_feats = get_pca_no_whiten(feats)
+
+    coords = []
+    for i in range(len(filenames)):
+        x, y, z = norm_feats[i]
+        tmp = {
+            "x": np.float64(x),
+            "y": np.float64(y),
+            "z": np.float64(z),
+            "filename": filenames[i]
+        }
+        coords.append(tmp)
+
+    with open('coords_no_whiten.json', 'w') as json_file:
+        json.dump(coords, json_file)
+
+    value_no_whiten = {
         "status": "ready",
         "data": coords
     }
@@ -267,6 +340,8 @@ def get_coordinates():
         return json.dumps(value_pca)
     elif method == 'umap':
         return json.dumps(value_umap)
+    elif method == 'no_whiten':
+        return json.dumps(value_no_whiten)
 
 
 
@@ -283,6 +358,7 @@ def handle_file():
 
     value_pca = {}
     value_umap = {}
+    value_no_whiten = {}
     if (os.path.exists('coords.json')):
         with open('coords.json') as json_file:
             coords = json.load(json_file)
@@ -338,13 +414,39 @@ def handle_file():
 
         # return json.dumps(value)
 
-    if not(os.path.exists('coords_umap.json') or os.path.exists('coords.json')):
+    if (os.path.exists('coords_no_whiten.json')):
+        with open('coords_no_whiten.json') as json_file:
+            coords = json.load(json_file)
+
+        feats = get_feats(resnet, input_shape, path)
+        norm_feats = transform_feats_no_whiten(feats)
+
+        x, y, z = norm_feats[0]
+        tmp = {
+            "x": np.float64(x),
+            "y": np.float64(y),
+            "z": np.float64(z),
+            "filename": filename
+        }
+        coords.append(tmp)
+
+        with open('coords_no_whiten.json', 'w') as json_file:
+            json.dump(coords, json_file)
+
+        value_no_whiten = {
+            "status": "ready",
+            "data": coords
+        }
+
+    if not(os.path.exists('coords_umap.json') or os.path.exists('coords.json') or os.path.exists('coords_no_whiten.json')):
         return get_coordinates()
 
     if method == 'pca':
         return json.dumps(value_pca)
     elif method == 'umap':
         return json.dumps(value_umap)
+    elif method == 'no_whiten':
+        return json.dumps(value_no_whiten)
 
 
 @app.route('/check', methods=['GET'])
