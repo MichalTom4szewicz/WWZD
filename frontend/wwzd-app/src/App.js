@@ -49,7 +49,7 @@ export const App = () => {
   const [method, setMethod] = useState([1, 0, 0]);
   const [ifClass, setIfClass] = useState(false);
   const [axes, setAxes] = useState(["pickup", "convertible", "sports_car"]);
-  const methodsArray = ["pca", "umap", "no_whiten"]
+  const methodsArray = ["pca", "umap", "no_whiten", "pca_no_norm", "umap_no_norm"]
 
   const handleMethod = (index) => {
     let met = method.map(m => 0)//Math.abs(m-1))
@@ -133,6 +133,16 @@ export const App = () => {
           label="PCA (no whitening)"
           value = {method[2] ? true : false}
           onChange={()=>handleMethod(2)}
+        />
+        <Checkbox
+          label="PCA (no normalization)"
+          value = {method[3] ? true : false}
+          onChange={()=>handleMethod(3)}
+        />
+        <Checkbox
+          label="UMAP (no normalization)"
+          value = {method[4] ? true : false}
+          onChange={()=>handleMethod(4)}
         />
         <Checkbox
           label="Class"
