@@ -1,5 +1,5 @@
 import "./styles/App.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MyUploader from "./components/MyUploader.js";
 import { MainChart } from "./components/MainChart";
 import fileService from "./services/file";
@@ -47,7 +47,7 @@ export const App = () => {
   const [zArray, setZArray] = useState([]);
   const [namesArray, setNamesArray] = useState([]);
   const [classesArray, setClassesArray] = useState([]);
-
+  const [loading, setLoading] = useState(true);
   const [method, setMethod] = useState([1, 0, 0]);
   const [ifClass, setIfClass] = useState(false);
   const [axes, setAxes] = useState(["pickup", "convertible", "sports_car"]);
@@ -58,6 +58,23 @@ export const App = () => {
     "pca_no_norm",
     "umap_no_norm",
   ];
+
+  useEffect(() => {
+    if (ifClass) {
+      setLoading(true);
+      fileService.changeAxes({ axes: axes }).then((response) => {
+        console.log(response);
+        const cords = response.data;
+        setXArray(cords.map((item) => item.x));
+        setYArray(cords.map((item) => item.y));
+        setZArray(cords.map((item) => item.z));
+        setNamesArray(cords.map((item) => item.filename));
+        setClassesArray(cords.map((item) => item.classname));
+
+        setLoading(false);
+      });
+    }
+  }, [ifClass]);
 
   const handleMethod = (index) => {
     let met = method.map((m) => 0); //Math.abs(m-1))
@@ -74,7 +91,7 @@ export const App = () => {
         setYArray(cords.map((item) => item.y));
         setZArray(cords.map((item) => item.z));
         setNamesArray(cords.map((item) => item.filename));
-        // setClassesArray(cords.map((item) => item.className));
+        setClassesArray(cords.map((item) => item.classname));
       });
   };
 
@@ -83,6 +100,8 @@ export const App = () => {
     ax[i] = e.target.value;
     setAxes(ax);
     if (ifClass) {
+      setLoading(true);
+
       fileService.changeAxes({ axes: ax }).then((response) => {
         console.log(response);
 
@@ -91,7 +110,8 @@ export const App = () => {
         setYArray(cords.map((item) => item.y));
         setZArray(cords.map((item) => item.z));
         setNamesArray(cords.map((item) => item.filename));
-        // setClassesArray(cords.map((item) => item.className));
+        setClassesArray(cords.map((item) => item.classname));
+        setLoading(false);
       });
     }
   };
@@ -123,6 +143,8 @@ export const App = () => {
             axesNames={ifClass ? axes : undefined}
             classesArray={classesArray}
             setClassesArray={setClassesArray}
+            loading={loading}
+            setLoading={setLoading}
           />
         </header>
       </div>
@@ -184,8 +206,6 @@ export const App = () => {
           setZArray={setZArray}
           setNamesArray={setNamesArray}
         />
-        {/* <MyDropzone setter={setImage} /> */}
-        {/* <button onClick={handleClick}>Send</button> */}
       </div>
     </div>
   );

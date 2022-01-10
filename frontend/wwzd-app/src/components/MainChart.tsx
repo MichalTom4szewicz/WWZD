@@ -8,7 +8,7 @@ export type Cord = {
   y: number;
   z: number;
   filename?: string;
-  className?: string;
+  classname?: string;
 };
 
 export const MainChart = ({
@@ -23,16 +23,21 @@ export const MainChart = ({
   axesNames,
   classesArray,
   setClassesArray,
+  loading,
+  setLoading,
 }) => {
   const [colors, setColors] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  // const [initLength, setInitLength] = useState(0);
+  const [loading2, setLoading2] = useState(false);
   const [image, setImage] = useState("");
   const [camera, setCamera] = useState({
     up: { x: 0, y: 0, z: 1 },
     center: { x: 0, y: 0, z: 0 },
     eye: { x: 1.25, y: 1.25, z: 1.25 },
   });
+
+  useEffect(() => {
+    setLoading2(loading);
+  }, [loading]);
 
   useEffect(() => {
     const getImgs = async () => {
@@ -43,7 +48,7 @@ export const MainChart = ({
         const colorsArray = [];
         setXArray(
           cords.map((item) => {
-            switch (item.className) {
+            switch (item.classname) {
               case "pickup": {
                 colorsArray.push("blue");
                 break;
@@ -93,7 +98,7 @@ export const MainChart = ({
                 break;
               }
               default: {
-                colorsArray.push("grey");
+                colorsArray.push("black");
                 break;
               }
             }
@@ -104,7 +109,12 @@ export const MainChart = ({
         setYArray(cords.map((item) => item.y));
         setZArray(cords.map((item) => item.z));
         setNamesArray(cords.map((item) => item.filename));
-        // setClassesArray(cords.map((item) => item.className));
+        setClassesArray(
+          cords.map((item) => {
+            // console.log(item.classname);
+            return item.classname;
+          })
+        );
         setColors(colorsArray);
       } catch (e) {
         console.log({ e });
@@ -116,7 +126,7 @@ export const MainChart = ({
 
   return (
     <>
-      {loading ? (
+      {loading2 ? (
         <>Ładowanie...</>
       ) : (
         <>
@@ -128,8 +138,10 @@ export const MainChart = ({
                 x: xArray,
                 y: yArray,
                 z: zArray,
-                text: namesArray,
-                name: classesArray || "name",
+                text: namesArray.map(
+                  (item: string, i) => item + " - " + classesArray[i]
+                ),
+                name: "",
                 mode: "markers",
                 type: "scatter3d",
                 marker: {
@@ -153,7 +165,8 @@ export const MainChart = ({
             }}
             revision={0}
             onHover={(e: any) => {
-              setImage(e.points[0]?.text || "");
+              // console.log(e.points[0]?.text.substring(0, 9));
+              setImage(e.points[0]?.text.substring(0, 9) || "");
             }}
             onRelayout={(figure: any) => {
               // console.log(figure);

@@ -23,7 +23,7 @@ import time
 from umap import UMAP
 
 counter = Value('i', 0)
-classes = ['pickup', 'sports_car', 'minivan']
+axes = ['pickup', 'sports_car', 'minivan']
 
 method = "pca"
 model = ResNet50(weights="imagenet")
@@ -234,7 +234,7 @@ def transform_feats_umap_no_norm(feats):
     return umap_feats
 
 
-def get_coords_from_feats(feats, method, filenames):
+def get_coords_from_feats(feats, method, filenames, classnames):
     if method == 'pca':
         norm_feats = get_pca_norm(feats)
     elif method == 'umap':
@@ -253,14 +253,15 @@ def get_coords_from_feats(feats, method, filenames):
             "x": np.float64(x),
             "y": np.float64(y),
             "z": np.float64(z),
-            "filename": filenames[i]
+            "filename": filenames[i],
+            "classname": classnames[i]
         }
         coords.append(tmp)
 
     return coords
 
 
-def transform_feats(feats, method, filename):
+def transform_feats(feats, method, filename, classname):
     if method == 'pca':
         norm_feats = transform_feats_pca(feats)
     elif method == 'umap':
@@ -277,7 +278,8 @@ def transform_feats(feats, method, filename):
         "x": np.float64(x),
         "y": np.float64(y),
         "z": np.float64(z),
-        "filename": filename
+        "filename": filename,
+        "class": classname
     }
 
     return tmp
@@ -286,14 +288,16 @@ def transform_feats(feats, method, filename):
 def get_all_feats():
     feats = []
     filenames = []
+    classnames = []
 
     for filename in glob.glob('imgs/*'):
         feats.append(get_feats(resnet, input_shape, filename))
+        classnames.append(imagenet_utils.decode_predictions(get_feats(model, input_shape, filename))[0][0][1])
         filenames.append(filename.split(sep="\\")[1])
 
     feats = np.reshape(feats, (len(filenames), 2048))
 
-    return feats, filenames
+    return feats, filenames, classnames
 
 
 @app.route('/imgs', methods=['GET'])
@@ -314,8 +318,8 @@ def get_coordinates():
                 "data": coords
             }    
     else:
-        feats, filenames = get_all_feats()   
-        coords = get_coords_from_feats(feats, 'pca', filenames)
+        feats, filenames, classnames = get_all_feats()   
+        coords = get_coords_from_feats(feats, 'pca', filenames, classnames)
 
         with open('coords_pca.json', 'w') as json_file:
             json.dump(coords, json_file)
@@ -335,8 +339,8 @@ def get_coordinates():
                 "data": coords
             }
     else:
-        feats, filenames = get_all_feats()   
-        coords = get_coords_from_feats(feats, 'umap', filenames)
+        feats, filenames, classnames = get_all_feats()   
+        coords = get_coords_from_feats(feats, 'umap', filenames, classnames)
 
         with open('coords_umap.json', 'w') as json_file:
             json.dump(coords, json_file)
@@ -356,8 +360,8 @@ def get_coordinates():
                 "data": coords
             }
     else:
-        feats, filenames = get_all_feats()   
-        coords = get_coords_from_feats(feats, 'no_whiten', filenames)
+        feats, filenames, classnames = get_all_feats()   
+        coords = get_coords_from_feats(feats, 'no_whiten', filenames, classnames)
 
         with open('coords_no_whiten.json', 'w') as json_file:
             json.dump(coords, json_file)
@@ -377,8 +381,8 @@ def get_coordinates():
                 "data": coords
             }    
     else:
-        feats, filenames = get_all_feats()   
-        coords = get_coords_from_feats(feats, 'pca_no_norm', filenames)
+        feats, filenames, classnames = get_all_feats()   
+        coords = get_coords_from_feats(feats, 'pca_no_norm', filenames, classnames)
 
         with open('coords_pca_no_norm.json', 'w') as json_file:
             json.dump(coords, json_file)
@@ -398,8 +402,8 @@ def get_coordinates():
                 "data": coords
             }    
     else:
-        feats, filenames = get_all_feats()   
-        coords = get_coords_from_feats(feats, 'umap_no_norm', filenames)
+        feats, filenames, classnames = get_all_feats()   
+        coords = get_coords_from_feats(feats, 'umap_no_norm', filenames, classnames)
 
         with open('coords_umap_no_norm.json', 'w') as json_file:
             json.dump(coords, json_file)
@@ -445,7 +449,8 @@ def handle_file():
             coords = json.load(json_file)
 
         feats = get_feats(resnet, input_shape, path)
-        tmp = transform_feats(feats, 'pca', filename)
+        classname = imagenet_utils.decode_predictions(get_feats(model, input_shape, filename))[0][0][1]
+        tmp = transform_feats(feats, 'pca', filename, classname)
         coords.append(tmp)
 
         with open('coords_pca.json', 'w') as json_file:
@@ -462,8 +467,9 @@ def handle_file():
         with open('coords_umap.json') as json_file:
             coords = json.load(json_file)
 
-        feats = get_feats(resnet, input_shape, path)        
-        tmp = transform_feats(feats, 'umap', filename)
+        feats = get_feats(resnet, input_shape, path)    
+        classname = imagenet_utils.decode_predictions(get_feats(model, input_shape, filename))[0][0][1]    
+        tmp = transform_feats(feats, 'umap', filename, classname)
         coords.append(tmp)
 
         with open('coords_umap.json', 'w') as json_file:
@@ -480,8 +486,9 @@ def handle_file():
         with open('coords_no_whiten.json') as json_file:
             coords = json.load(json_file)
 
-        feats = get_feats(resnet, input_shape, path)          
-        tmp = transform_feats(feats, 'no_whiten', filename)
+        feats = get_feats(resnet, input_shape, path)       
+        classname = imagenet_utils.decode_predictions(get_feats(model, input_shape, filename))[0][0][1]   
+        tmp = transform_feats(feats, 'no_whiten', filename, classname)
         coords.append(tmp)
 
         with open('coords_no_whiten.json', 'w') as json_file:
@@ -498,8 +505,9 @@ def handle_file():
         with open('coords_pca_no_norm.json') as json_file:
             coords = json.load(json_file)
 
-        feats = get_feats(resnet, input_shape, path)          
-        tmp = transform_feats(feats, 'pca_no_norm', filename)
+        feats = get_feats(resnet, input_shape, path)
+        classname = imagenet_utils.decode_predictions(get_feats(model, input_shape, filename))[0][0][1]
+        tmp = transform_feats(feats, 'pca_no_norm', filename, classname)
         coords.append(tmp)
 
         with open('coords_pca_no_norm.json', 'w') as json_file:
@@ -516,8 +524,9 @@ def handle_file():
         with open('coords_umap_no_norm.json') as json_file:
             coords = json.load(json_file)
 
-        feats = get_feats(resnet, input_shape, path)          
-        tmp = transform_feats(feats, 'umap_no_norm', filename)
+        feats = get_feats(resnet, input_shape, path)
+        classname = imagenet_utils.decode_predictions(get_feats(model, input_shape, filename))[0][0][1]
+        tmp = transform_feats(feats, 'umap_no_norm', filename, classname)
         coords.append(tmp)
 
         with open('coords_umap_no_norm.json', 'w') as json_file:
@@ -557,8 +566,8 @@ def post_axes():
     data = request.data.decode("utf-8")
     data = json.loads(data)
 
-    global classes
-    classes = data['axes']
+    global axes
+    axes = data['axes']
     return get_class_coordinates()
 
 
@@ -580,14 +589,16 @@ def get_class_coordinates():
 
     feats = []
     filenames = []
+    classnames = []
 
     for filename in glob.glob('imgs/*.*'):
         feats.append(imagenet_utils.decode_predictions(get_feats(model, input_shape, filename)))
+        classnames.append(imagenet_utils.decode_predictions(get_feats(model, input_shape, filename))[0][0][1])
         filenames.append(filename.split(sep="\\")[1])
     print("___________________Class___________________")
 
     feats = np.squeeze(feats)
-    class_coordinates = compare_images(feats, classes)
+    class_coordinates = compare_images(feats, axes)
 
     obs = []
     for i in range(len(filenames)):
@@ -596,7 +607,8 @@ def get_class_coordinates():
             "x": np.float64(x),
             "y": np.float64(y),
             "z": np.float64(z),
-            "filename": filenames[i]
+            "filename": filenames[i],
+            "classname": classnames[i]
         }
         obs.append(tmp)
 
