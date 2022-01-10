@@ -200,7 +200,7 @@ def transform_feats_no_whiten(feats):
     norm_feats = normalizer_second.transform(pca_feats)
 
     return norm_feats
-   
+
 
 def get_pca_no_norm(feats):
     pca = PCA(n_components=3, whiten=True)
@@ -217,7 +217,7 @@ def transform_feats_no_norm(feats):
 
     return pca_feats
 
-    
+
 def get_umap_no_norm(feats):
     umap = UMAP(n_components=3, init='random', random_state=0)
     umap.fit(feats)
@@ -225,7 +225,7 @@ def get_umap_no_norm(feats):
     joblib.dump(umap, 'models/umap_no_norm.joblib')
 
     return umap_feats
-    
+
 
 def transform_feats_umap_no_norm(feats):
     umap = joblib.load('models/umap_no_norm.joblib')
@@ -316,9 +316,9 @@ def get_coordinates():
             value_pca = {
                 "status": "ready",
                 "data": coords
-            }    
+            }
     else:
-        feats, filenames, classnames = get_all_feats()   
+        feats, filenames, classnames = get_all_feats()
         coords = get_coords_from_feats(feats, 'pca', filenames, classnames)
 
         with open('coords_pca.json', 'w') as json_file:
@@ -330,7 +330,7 @@ def get_coordinates():
         }
 
     print("___________________UMAP___________________")
-    
+
     if (os.path.exists('coords_umap.json')):
         with open('coords_umap.json') as json_file:
             coords = json.load(json_file)
@@ -339,7 +339,7 @@ def get_coordinates():
                 "data": coords
             }
     else:
-        feats, filenames, classnames = get_all_feats()   
+        feats, filenames, classnames = get_all_feats()
         coords = get_coords_from_feats(feats, 'umap', filenames, classnames)
 
         with open('coords_umap.json', 'w') as json_file:
@@ -351,7 +351,7 @@ def get_coordinates():
         }
 
     print("___________________PCA_NO_WHITEN___________________")
-    
+
     if (os.path.exists('coords_no_whiten.json')):
         with open('coords_no_whiten.json') as json_file:
             coords = json.load(json_file)
@@ -360,7 +360,7 @@ def get_coordinates():
                 "data": coords
             }
     else:
-        feats, filenames, classnames = get_all_feats()   
+        feats, filenames, classnames = get_all_feats()
         coords = get_coords_from_feats(feats, 'no_whiten', filenames, classnames)
 
         with open('coords_no_whiten.json', 'w') as json_file:
@@ -379,9 +379,9 @@ def get_coordinates():
             value_pca_no_norm = {
                 "status": "ready",
                 "data": coords
-            }    
+            }
     else:
-        feats, filenames, classnames = get_all_feats()   
+        feats, filenames, classnames = get_all_feats()
         coords = get_coords_from_feats(feats, 'pca_no_norm', filenames, classnames)
 
         with open('coords_pca_no_norm.json', 'w') as json_file:
@@ -400,9 +400,9 @@ def get_coordinates():
             value_umap_no_norm = {
                 "status": "ready",
                 "data": coords
-            }    
+            }
     else:
-        feats, filenames, classnames = get_all_feats()   
+        feats, filenames, classnames = get_all_feats()
         coords = get_coords_from_feats(feats, 'umap_no_norm', filenames, classnames)
 
         with open('coords_umap_no_norm.json', 'w') as json_file:
@@ -418,11 +418,11 @@ def get_coordinates():
     elif method == 'umap' and value_umap:
         return json.dumps(value_umap)
     elif method == 'no_whiten' and value_no_whiten:
-        return json.dumps(value_no_whiten)     
+        return json.dumps(value_no_whiten)
     elif method == 'pca_no_norm' and value_pca_no_norm:
-        return json.dumps(value_pca_no_norm)   
+        return json.dumps(value_pca_no_norm)
     elif method == 'umap_no_norm' and value_umap_no_norm:
-        return json.dumps(value_umap_no_norm)        
+        return json.dumps(value_umap_no_norm)
 
 
 @app.route('/file', methods=['POST'])
@@ -434,6 +434,7 @@ def handle_file():
     name_count = len(os.listdir(path)) + 1
     filename = secure_filename(f"img{name_count}.{ext}")
     path = os.path.join(path, filename)
+    filename = path
     f.save(path)
 
     value_pca = {}
@@ -467,8 +468,8 @@ def handle_file():
         with open('coords_umap.json') as json_file:
             coords = json.load(json_file)
 
-        feats = get_feats(resnet, input_shape, path)    
-        classname = imagenet_utils.decode_predictions(get_feats(model, input_shape, filename))[0][0][1]    
+        feats = get_feats(resnet, input_shape, path)
+        classname = imagenet_utils.decode_predictions(get_feats(model, input_shape, filename))[0][0][1]
         tmp = transform_feats(feats, 'umap', filename, classname)
         coords.append(tmp)
 
@@ -486,8 +487,8 @@ def handle_file():
         with open('coords_no_whiten.json') as json_file:
             coords = json.load(json_file)
 
-        feats = get_feats(resnet, input_shape, path)       
-        classname = imagenet_utils.decode_predictions(get_feats(model, input_shape, filename))[0][0][1]   
+        feats = get_feats(resnet, input_shape, path)
+        classname = imagenet_utils.decode_predictions(get_feats(model, input_shape, filename))[0][0][1]
         tmp = transform_feats(feats, 'no_whiten', filename, classname)
         coords.append(tmp)
 
@@ -537,7 +538,7 @@ def handle_file():
             "data": coords
         }
 
-    if not(os.path.exists('coords_umap.json') or os.path.exists('coords_pca.json') or os.path.exists('coords_no_whiten.json') 
+    if not(os.path.exists('coords_umap.json') or os.path.exists('coords_pca.json') or os.path.exists('coords_no_whiten.json')
         or os.path.exists('coords_pca_no_norm.json') or os.path.exists('coords_umap_no_norm.json')):
         return get_coordinates()
 
