@@ -694,7 +694,8 @@ def get_class_coordinates():
 
 #         return json.dumps(value)
 
-write_file()
+if not(os.path.exists('info.txt')):
+    write_file()
 
 if __name__ == '__main__':
 
