@@ -19,6 +19,7 @@ import os, os.path
 import joblib
 from multiprocessing import Value
 import time
+from re import L
 
 from umap import UMAP
 
@@ -75,6 +76,32 @@ def init_chart():
         randomCords.append([random.randint(0, 20), random.randint(0, 20), random.randint(0, 20), c])
 
     return json.dumps(randomCords)
+
+def write_file():
+    f = open("info.txt", "w")
+
+    directory = './imgs/'
+    for filename in os.listdir(directory):
+        P = imagenet_utils.decode_predictions(get_feats(model, input_shape, directory + filename))
+        f.write(str(P[0]) + '\n')
+
+    f.close()
+
+def read_file():
+    P = [['' for x in range(15)] for y in range(sum(1 for line in open('info.txt')))]
+    characters_to_remove = "()[]' \n"
+    i = 0
+    f = open("info.txt", "r")
+
+    for line in f:
+        for character in characters_to_remove:
+            line = line.replace(character, "")
+        P[i] = line.split(',')
+        P[i] = np.reshape(P[i], (5, 3))
+        i = i + 1
+
+    f.close()
+    return P
 
 def take_3_most_common_labels(feats):
     car_types = {}
@@ -588,17 +615,16 @@ def handle_method():
 @app.route('/class', methods=['GET'])
 def get_class_coordinates():
 
-    feats = []
+    feats = read_file()
     filenames = []
     classnames = []
 
     for filename in glob.glob('imgs/*.*'):
-        feats.append(imagenet_utils.decode_predictions(get_feats(model, input_shape, filename)))
-        classnames.append(imagenet_utils.decode_predictions(get_feats(model, input_shape, filename))[0][0][1])
         filenames.append(filename.split(sep="\\")[1])
+    for i in range(len(feats)):
+        classnames.append(feats[i][0][1])
     print("___________________Class___________________")
 
-    feats = np.squeeze(feats)
     class_coordinates = compare_images(feats, axes)
 
     obs = []
@@ -668,6 +694,7 @@ def get_class_coordinates():
 
 #         return json.dumps(value)
 
+write_file()
 
 if __name__ == '__main__':
 
